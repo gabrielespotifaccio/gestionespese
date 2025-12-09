@@ -2,278 +2,137 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
-  <title>Spese personali - Multiutente</title>
+  <title>Gestione Spese Personali</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  
   <style>
-    body { font-family: Arial, sans-serif; max-width: 900px; margin: 20px auto; }
-    h1, h2 { text-align: center; }
-    .box { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 6px; }
-    label { display: block; margin-top: 8px; }
-    input, select { width: 100%; padding: 6px; margin-top: 3px; }
-    button { padding: 8px 12px; margin-top: 10px; cursor: pointer; }
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
-    th { background: #f0f0f0; }
-    .msg { margin-top: 8px; min-height: 1em; }
-    .hidden { display: none; }
-    .row { display: flex; gap: 20px; flex-wrap: wrap; }
-    .col { flex: 1 1 300px; }
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 0 10px;
+      background: #f9f9f9;
+    }
+    h1 { text-align: center; margin-bottom: 30px; }
+    h2 { margin-top: 0; }
+    .box {
+      background: white;
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin-bottom: 25px;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      padding: 8px 14px;
+      margin-top: 12px;
+      cursor: pointer;
+      background: #007bff;
+      border: none;
+      color: white;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    button:hover { background: #0056b3; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin-top: 15px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 6px 8px;
+    }
+    th {
+      background: #f1f1f1;
+      text-align: left;
+    }
+    td.right { text-align: right; }
+    .msg {
+      margin-top: 10px;
+      font-size: 13px;
+    }
+    .msg.ok { color: green; }
+    .msg.err { color: red; }
+    .small { font-size: 12px; color: #777; }
   </style>
+
+  <!-- Supabase JS SDK -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
+
 <body>
-  <h1>Gestione spese personali (multi-utente)</h1>
 
-  <div class="row">
-    <div class="box col">
-      <h2>Registrazione</h2>
-      <form id="registerForm">
-        <label>
-          Email
-          <input type="email" name="email" required />
-        </label>
-        <label>
-          Password
-          <input type="password" name="password" required />
-        </label>
-        <label>
-          Conferma password
-          <input type="password" name="password2" required />
-        </label>
-        <button type="submit">Crea account</button>
-      </form>
-      <div class="msg" id="registerMsg"></div>
-    </div>
+  <h1>Gestione Spese Personali</h1>
 
-    <div class="box col">
-      <h2>Login</h2>
-      <form id="loginForm">
-        <label>
-          Email
-          <input type="email" name="email" required />
-        </label>
-        <label>
-          Password
-          <input type="password" name="password" required />
-        </label>
-        <button type="submit">Entra</button>
-      </form>
-      <div class="msg" id="loginMsg"></div>
-      <div id="loggedInfo" class="hidden">
-        Utente loggato: <span id="loggedEmail"></span>
-        <button id="logoutBtn" type="button">Logout</button>
-      </div>
-    </div>
+  <!-- FORM INSERIMENTO -->
+  <div class="box">
+    <h2>Nuova Spesa</h2>
+
+    <form id="form-spesa">
+
+      <label>Data
+        <input type="date" id="data" required />
+      </label>
+
+      <label>Categoria
+        <input type="text" id="categoria" placeholder="Es. Supermercato" required />
+      </label>
+
+      <label>Descrizione
+        <input type="text" id="descrizione" placeholder="Dettagli (facoltativo)" />
+      </label>
+
+      <label>Importo
+        <input type="number" step="0.01" id="importo" required />
+      </label>
+
+      <label>Metodo di pagamento
+        <input type="text" id="metodo" placeholder="Es. Contanti, Carta" />
+      </label>
+
+      <button type="submit">Salva Spesa</button>
+
+      <div id="msg-form" class="msg"></div>
+    </form>
   </div>
 
-  <div id="appArea" class="box hidden">
-    <h2>Le tue spese</h2>
-    <form id="spesaForm">
-      <label>
-        Categoria
-        <select name="categoria" required>
-          <option value="">Seleziona...</option>
-          <option>Casa</option>
-          <option>Spesa</option>
-          <option>Trasporti</option>
-          <option>Svago</option>
-          <option>Altro</option>
-        </select>
-      </label>
+  <!-- LISTA SPESE -->
+  <div class="box">
+    <h2>Elenco Spese</h2>
 
-      <label>
-        Descrizione
-        <input type="text" name="descrizione" required />
-      </label>
+    <button id="btn-aggiorna" type="button">Aggiorna Elenco</button>
+    <div id="msg-list" class="msg small"></div>
 
-      <label>
-        Importo (€)
-        <input type="number" step="0.01" name="importo" required />
-      </label>
-
-      <button type="submit">Salva spesa</button>
-    </form>
-
-    <div class="msg" id="spesaMsg"></div>
-
-    <table id="tabellaSpese">
+    <table id="tabella-spese">
       <thead>
         <tr>
           <th>Data</th>
           <th>Categoria</th>
           <th>Descrizione</th>
-          <th>Importo</th>
+          <th class="right">Importo</th>
+          <th>Metodo</th>
+          <th></th>
         </tr>
       </thead>
-      <tbody></tbody>
+      <tbody>
+        <!-- Popolato da JS -->
+      </tbody>
     </table>
   </div>
 
-  <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxdTGyFyjGU7bE_w3IvRvIEKRk8kulbXGi2Z25qAN0WQ-cpH6ahhz-YTM0JvtgT38DY/exec";
+  <script src="app.js"></script>
 
-    let currentEmail = null;
-    let currentPassword = null;
-
-    const registerForm = document.getElementById('registerForm');
-    const loginForm    = document.getElementById('loginForm');
-    const spesaForm    = document.getElementById('spesaForm');
-
-    const registerMsg  = document.getElementById('registerMsg');
-    const loginMsg     = document.getElementById('loginMsg');
-    const spesaMsg     = document.getElementById('spesaMsg');
-
-    const appArea      = document.getElementById('appArea');
-    const loggedInfo   = document.getElementById('loggedInfo');
-    const loggedEmail  = document.getElementById('loggedEmail');
-    const logoutBtn    = document.getElementById('logoutBtn');
-    const tbody        = document.querySelector('#tabellaSpese tbody');
-
-    async function callApi(action, payload) {
-  const params = new URLSearchParams(Object.assign({ action }, payload || {}));
-  const url = API_URL + "?" + params.toString();
-
-  const res = await fetch(url);     // GET con parametri nell'URL
-  const text = await res.text();    // leggiamo la risposta raw
-
-  try {
-    return JSON.parse(text);        // proviamo a parse-are JSON
-  } catch (e) {
-    console.error('Risposta non JSON dal server:', text);
-    throw e;
-  }
-}
-
-
-
-    registerForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      registerMsg.textContent = '';
-      const data = new FormData(registerForm);
-      const email = data.get('email').trim();
-      const password  = data.get('password');
-      const password2 = data.get('password2');
-
-      if (password !== password2) {
-        registerMsg.textContent = 'Le password non coincidono.';
-        return;
-      }
-
-      registerMsg.textContent = 'Registrazione in corso...';
-
-      try {
-        const out = await callApi('register', { email, password });
-        if (out.status === 'ok') {
-          registerMsg.textContent = 'Registrazione completata. Ora puoi fare login.';
-          registerForm.reset();
-        } else {
-          registerMsg.textContent = out.error || 'Errore di registrazione.';
-        }
-      } catch (err) {
-        registerMsg.textContent = 'Errore di connessione.';
-      }
-    });
-
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      loginMsg.textContent = 'Accesso in corso...';
-      const data = new FormData(loginForm);
-      const email = data.get('email').trim();
-      const password = data.get('password');
-
-      try {
-        const out = await callApi('login', { email, password });
-        if (out.status === 'ok') {
-          currentEmail = email;
-          currentPassword = password;
-          loginMsg.textContent = 'Login effettuato.';
-          loggedEmail.textContent = email;
-          loggedInfo.classList.remove('hidden');
-          appArea.classList.remove('hidden');
-          caricaSpese();
-        } else {
-          loginMsg.textContent = out.error || 'Credenziali non valide.';
-        }
-      } catch (err) {
-        loginMsg.textContent = 'Errore di connessione.';
-      }
-    });
-
-    logoutBtn.addEventListener('click', () => {
-      currentEmail = null;
-      currentPassword = null;
-      loggedInfo.classList.add('hidden');
-      appArea.classList.add('hidden');
-      tbody.innerHTML = '';
-      loginForm.reset();
-    });
-
-    spesaForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!currentEmail || !currentPassword) {
-        spesaMsg.textContent = 'Devi prima fare login.';
-        return;
-      }
-      spesaMsg.textContent = 'Salvataggio...';
-      const data = new FormData(spesaForm);
-      const payload = {
-        email: currentEmail,
-        password: currentPassword,
-        categoria: data.get('categoria'),
-        descrizione: data.get('descrizione'),
-        importo: data.get('importo')
-      };
-
-      try {
-        const out = await callApi('addExpense', payload);
-        if (out.status === 'ok') {
-          spesaMsg.textContent = 'Spesa salvata!';
-          spesaForm.reset();
-          caricaSpese();
-        } else {
-          spesaMsg.textContent = out.error || 'Errore nel salvataggio.';
-        }
-      } catch (err) {
-        spesaMsg.textContent = 'Errore di connessione.';
-      }
-    });
-
-    async function caricaSpese() {
-      if (!currentEmail || !currentPassword) return;
-      tbody.innerHTML = "<tr><td colspan='4'>Caricamento...</td></tr>";
-
-      try {
-        const out = await callApi('listExpenses', {
-          email: currentEmail,
-          password: currentPassword
-        });
-
-        if (out.status !== 'ok') {
-          tbody.innerHTML = "<tr><td colspan='4'>Errore: " + (out.error || '') + "</td></tr>";
-          return;
-        }
-
-        const items = out.items || [];
-        if (!items.length) {
-          tbody.innerHTML = "<tr><td colspan='4'>Nessuna spesa ancora.</td></tr>";
-          return;
-        }
-
-        tbody.innerHTML = '';
-        items.forEach(riga => {
-          const tr = document.createElement('tr');
-          const d = new Date(riga.data);
-          const dataStr = isNaN(d) ? riga.data : d.toLocaleDateString('it-IT');
-          tr.innerHTML = `
-            <td>${dataStr}</td>
-            <td>${riga.categoria || ''}</td>
-            <td>${riga.descrizione || ''}</td>
-            <td>${riga.importo || ''}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-      } catch (err) {
-        tbody.innerHTML = "<tr><td colspan='4'>Errore di connessione.</td></tr>";
-      }
-    }
-  </script>
 </body>
 </html>
