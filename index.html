@@ -128,20 +128,20 @@
     const tbody        = document.querySelector('#tabellaSpese tbody');
 
     async function callApi(action, payload) {
-  const body = Object.assign({ action }, payload || {});
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    body: JSON.stringify(body)   // niente headers, così il browser non blocca la richiesta
-  });
+  const params = new URLSearchParams(Object.assign({ action }, payload || {}));
+  const url = API_URL + "?" + params.toString();
 
-  const text = await res.text(); // leggiamo la risposta grezza
+  const res = await fetch(url);     // GET con parametri nell'URL
+  const text = await res.text();    // leggiamo la risposta raw
+
   try {
-    return JSON.parse(text);
+    return JSON.parse(text);        // proviamo a parse-are JSON
   } catch (e) {
     console.error('Risposta non JSON dal server:', text);
     throw e;
   }
 }
+
 
 
     registerForm.addEventListener('submit', async (e) => {
